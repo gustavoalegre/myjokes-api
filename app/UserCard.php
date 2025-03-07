@@ -3,6 +3,7 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use App\JokeUser;
 
 class UserCard extends Model
 {
@@ -14,6 +15,6 @@ class UserCard extends Model
     ];
     
     public function jokeUser(){
-        return $this->belongsTo('JokeUser');
+        return $this->belongsTo(JokeUser::class);
     }
 }

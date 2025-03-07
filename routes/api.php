@@ -28,6 +28,6 @@ Route::post('register', [JokeUserController::class, 'store']);
 Route::post('login', [HomeController::class, 'login']);
 Route::get('home', [HomeController::class, 'home']);
 Route::post('register-card', [UserCardController::class, 'store']);
-Route::post('list-cards', [UserCardController::class, 'index']);
+Route::get('list-cards', [UserCardController::class, 'index']);
 Route::post('charge-card', [UserCardController::class, 'charge']);
 

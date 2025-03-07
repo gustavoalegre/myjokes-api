@@ -41,22 +41,31 @@ class HomeController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function home(Request $request){
-        $url = "https://sv443.net/jokeapi/v2/joke/Any";
+        // Obtener usuario
+        $tokenData = app(JWTService::class)->verify();
+        $joke_user = JokeUser::where('email', $tokenData['sub'])->first();
+        if (count($joke_user->cards) > 0){
+            // Cargar broma
+            $url = "https://sv443.net/jokeapi/v2/joke/Any";
         
-        $response = Http::withOptions([
-            'verify' => false,
-        ])->withHeaders([
-            'Accept' => 'application/json',
-        ])->get($url);
-        
-        if ($response->successful()) {
-            $data = $response->json();
-            // Process the data
-            return response($response)->withHeaders([
-                'Content-Type' => 'application/json'
-            ]);
+            $response = Http::withOptions([
+                'verify' => false,
+            ])->withHeaders([
+                'Accept' => 'application/json',
+            ])->get($url);
+            
+            if ($response->successful()) {
+                $data = $response->json();
+                // Process the data
+                return response($response)->withHeaders([
+                    'Content-Type' => 'application/json'
+                ]);
+            } else {
+                // Handle the error
+                return response()->json(['status' => 200, 'message' => ":)"], 200);
+            }
         } else {
-            // Handle the error
+            return response()->json(['status' => 200, 'message' => "PENDING_CARD"], 200);
         }
     }
 }

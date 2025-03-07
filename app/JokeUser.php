@@ -3,6 +3,7 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use App\UserCard;
 
 class JokeUser extends Model
 {
@@ -16,6 +17,6 @@ class JokeUser extends Model
     ];
 
     public function cards(){
-        return $this->hasMany('UserCard');
+        return $this->hasMany(UserCard::class);
     }
 }
