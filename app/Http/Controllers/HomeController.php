@@ -17,8 +17,23 @@ class HomeController extends Controller
      */
     public function login(Request $request)
     {
+        // Validar ingreso
+        try{
+            $request->validate([
+                'email' => 'required|email',
+                'password' => 'required'
+            ], [
+                'email.required' => 'Ingrese e-mail',
+                'password.required' => 'Ingrese contraseña'
+            ]);            
+        } catch (\Illuminate\Validation\ValidationException $th) {
+            return response()->json(['status' => 400, 'error' => $th->validator->errors()], 400);
+        }
+
+        $input = $request->all();
+
         // Consultar por existencia del usuario
-        $joke_user = JokeUser::where('email', $request->input('email'))->where('password', md5($request->input('password')))->first();
+        $joke_user = JokeUser::where('email', $input['email'])->where('password', md5($input['password']))->first();
         if ($joke_user){
             $userData =[
                 'sub' => $joke_user->email,
@@ -31,7 +46,6 @@ class HomeController extends Controller
         } else {
             return response()->json(['status' => 401, 'message' => 'BAD CREDENTIALS'], 401);
         }
-        
     }
 
     /**
@@ -44,28 +58,33 @@ class HomeController extends Controller
         // Obtener usuario
         $tokenData = app(JWTService::class)->verify();
         $joke_user = JokeUser::where('email', $tokenData['sub'])->first();
-        if (count($joke_user->cards) > 0){
-            // Cargar broma
-            $url = "https://sv443.net/jokeapi/v2/joke/Any";
-        
-            $response = Http::withOptions([
-                'verify' => false,
-            ])->withHeaders([
-                'Accept' => 'application/json',
-            ])->get($url);
+        if ($joke_user){
+            if (count($joke_user->cards) > 0){
+                // Cargar broma
+                $url = "https://sv443.net/jokeapi/v2/joke/Any";
             
-            if ($response->successful()) {
-                $data = $response->json();
-                // Process the data
-                return response($response)->withHeaders([
-                    'Content-Type' => 'application/json'
-                ]);
+                $response = Http::withOptions([
+                    'verify' => false,
+                ])->withHeaders([
+                    'Accept' => 'application/json',
+                ])->get($url);
+                
+                if ($response->successful()) {
+                    $data = $response->json();
+                    // Process the data
+                    return response($response)->withHeaders([
+                        'Content-Type' => 'application/json'
+                    ]);
+                } else {
+                    // Handle the error
+                    return response()->json(['status' => 200, 'message' => ":)"], 200);
+                }
             } else {
-                // Handle the error
-                return response()->json(['status' => 200, 'message' => ":)"], 200);
+                return response()->json(['status' => 200, 'message' => "PENDING_CARD"], 200);
             }
         } else {
-            return response()->json(['status' => 200, 'message' => "PENDING_CARD"], 200);
+            //Usuario inválido
+            return response()->json(['status' => 400, 'message' => "Usuario inválido"], 400);
         }
     }
 }

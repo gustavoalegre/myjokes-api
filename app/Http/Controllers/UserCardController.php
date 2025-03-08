@@ -50,19 +50,24 @@ class UserCardController extends Controller
         $joke_user = JokeUser::where('email', $tokenData['sub'])->first();
         if ($joke_user){
             // Validar ingreso
-            $request->validate([
-                'brand' => 'required',
-                'number' => 'required',
-                'exp_month' => 'required',
-                'exp_year' => 'required',
-                'cvc' => 'required'
-            ], [
-                'brand.required' => 'Se requiere la marca de la tarjeta',
-                'number.required' => 'Se requiere el número de la tarjeta',
-                'exp_month.required' => 'Se requiere el mes de vencimiento de la tarjeta',
-                'exp_year.required' => 'Se requiere el año de vencimiento de la tarjeta',
-                'cvc.required' => 'Se requiere el CVC de la tarjeta',
-            ]);
+            try{
+                $request->validate([
+                    'brand' => 'required',
+                    'number' => 'required',
+                    'exp_month' => 'required',
+                    'exp_year' => 'required',
+                    'cvc' => 'required'
+                ], [
+                    'brand.required' => 'Se requiere la marca de la tarjeta',
+                    'number.required' => 'Se requiere el número de la tarjeta',
+                    'exp_month.required' => 'Se requiere el mes de vencimiento de la tarjeta',
+                    'exp_year.required' => 'Se requiere el año de vencimiento de la tarjeta',
+                    'cvc.required' => 'Se requiere el CVC de la tarjeta',
+                ]);
+            } catch (\Illuminate\Validation\ValidationException $th) {
+                return response()->json(['status' => 400, 'error' => $th->validator->errors()], 400);
+            }
+
             $input = $request->all();
 
             // Envía los datos a Stripe
@@ -156,13 +161,18 @@ class UserCardController extends Controller
         $joke_user = JokeUser::where('email', $tokenData['sub'])->first();
         if ($joke_user){
             // Validar ingreso de datos
-            $request->validate([
-                'card_id' => 'required',
-                'amount' => 'required'
-            ], [
-                'card_id.required' => 'Se requiere el id de Stripe de la tarjeta',
-                'amount.required' => 'Se requiere monto a cargar',
-            ]);
+            try{
+                $request->validate([
+                    'card_id' => 'required',
+                    'amount' => 'required'
+                ], [
+                    'card_id.required' => 'Se requiere el id de Stripe de la tarjeta',
+                    'amount.required' => 'Se requiere monto a cargar',
+                ]);
+            } catch (\Illuminate\Validation\ValidationException $th) {
+                return response()->json(['status' => 400, 'error' => $th->validator->errors()], 400);
+            }
+
             $input = $request->all();
 
             // Obtener stripe_id del customer asociado a la tarjeta

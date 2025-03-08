@@ -38,19 +38,24 @@ class JokeUserController extends Controller
     public function store(Request $request)
     {
         // Validar ingreso
-        $request->validate([
-            'first_name' => 'required',
-            'last_name' => 'required',
-            'email' => 'required|email|unique:users',
-            'password' => 'required|min:5',
-            'phone_number' => 'required'
-        ], [
-            'first_name.required' => 'Se requiere el nombre',
-            'last_name.required' => 'Se requiere el apellido',
-            'email.required' => 'Se requiere el e-mail',
-            'password.required' => 'Se requiere la contraseña',
-            'phone_number.required' => 'Se requiere el número de teléfono',
-        ]);
+        try{
+            $request->validate([
+                'first_name' => 'required',
+                'last_name' => 'required',
+                'email' => 'required|email|unique:users',
+                'password' => 'required|min:5',
+                'phone_number' => 'required'
+            ], [
+                'first_name.required' => 'Se requiere el nombre',
+                'last_name.required' => 'Se requiere el apellido',
+                'email.required' => 'Se requiere el e-mail',
+                'password.required' => 'Se requiere la contraseña',
+                'phone_number.required' => 'Se requiere el número de teléfono',
+            ]);            
+        } catch (\Illuminate\Validation\ValidationException $th) {
+            return response()->json(['status' => 400, 'error' => $th->validator->errors()], 400);
+        }
+
         $input = $request->all();
 
         // Envía los datos a Stripe para crear el customer
