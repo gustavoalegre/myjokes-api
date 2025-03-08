@@ -13,7 +13,8 @@ class JokeUser extends Model
         'last_name',
         'email',
         'password',
-        'phone_number'    
+        'phone_number',
+        'stripe_id' 
     ];
 
     public function cards(){

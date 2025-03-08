@@ -11,7 +11,7 @@ class UserCard extends Model
     protected $fillable = [
         'stripe_id',
         'card_last_digits',
-        'card_brand'
+        'card_brand',
     ];
     
     public function jokeUser(){

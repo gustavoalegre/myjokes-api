@@ -67,25 +67,21 @@ class UserCardController extends Controller
 
             // Envía los datos a Stripe
             $stripe = new \Stripe\StripeClient(config('stripe.sk'));
-            // Customer
-            $customer = $stripe->customers->create([
-                'name' => $joke_user->first_name . ' ' . $joke_user->last_name,
-                'email' => $joke_user->email,
-            ]);
             // Payment Method
             $pm = $stripe->paymentMethods->create([
                 'type' => 'card',
                 'card' => [
-                  'number' => $input['number'],
+                  /*'number' => $input['number'],
                   'exp_month' => $input['exp_month'],
                   'exp_year' => $input['exp_year'],
-                  'cvc' => $input['cvc']
+                  'cvc' => $input['cvc']*/
+                  'token' => 'tok_visa'
                 ]
             ]);
             // Asociar payment method a customer
             $cus_pm = $stripe->paymentMethods->attach(
                 $pm->id,
-                ['customer' => $customer->id]
+                ['customer' => $joke_user->stripe_id]
             );
 
             // Guarda los datos de la tarjeta en la bd
@@ -93,6 +89,7 @@ class UserCardController extends Controller
             $user_card->stripe_id = $cus_pm->id;
             $user_card->card_last_digits = substr($input['number'], -4);
             $user_card->card_brand = $input['brand'];
+            $user_card->joke_user_id = $joke_user->id;
             $user_card->save();
 
             return response()->json($cus_pm, 201);
@@ -145,5 +142,60 @@ class UserCardController extends Controller
     public function destroy($id)
     {
         //
+    }
+
+    /**
+     * Procesar un cargo a la tarjeta.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function charge(Request $request){
+        // Obtener usuario
+        $tokenData = app(JWTService::class)->verify();
+        $joke_user = JokeUser::where('email', $tokenData['sub'])->first();
+        if ($joke_user){
+            // Validar ingreso de datos
+            $request->validate([
+                'card_id' => 'required',
+                'amount' => 'required'
+            ], [
+                'card_id.required' => 'Se requiere el id de Stripe de la tarjeta',
+                'amount.required' => 'Se requiere monto a cargar',
+            ]);
+            $input = $request->all();
+
+            // Obtener stripe_id del customer asociado a la tarjeta
+            $customer_id = UserCard::where('stripe_id', $input['card_id'])->first()->jokeUser->stripe_id;
+            // Valida que la tarjeta pertenezca al usuario logueado
+            if ($customer_id == $joke_user->stripe_id){
+                // Envía los datos a Stripe
+                $stripe = new \Stripe\StripeClient(config('stripe.sk'));
+                // Charge (deprecated)
+                /*$charge = $stripe->charges->create([
+                    'amount' => $input['amount'],
+                    'currency' => 'usd',
+                    //'source' => $input['card_id'],
+                    'customer' => $customer_id,
+                    'description' => 'Charge for ' . $joke_user->email
+                ]);*/
+                // Payment Intent
+                $paymentIntent = $stripe->paymentIntents->create([
+                    'amount' => $input['amount'],
+                    'currency' => 'usd',
+                    'customer' => $customer_id,
+                    'payment_method' => $input['card_id'],
+                    'description' => 'Charge for ' . $joke_user->email
+                ]);
+
+                return response()->json($paymentIntent, 201);
+            } else {
+                //Tarjeta no pertenece al usuario
+                return response()->json(['status' => 403, 'message' => "La tarjeta no pertenece al usuario"], 403);
+            }
+        } else {
+            //Usuario inválido
+            return response()->json(['status' => 400, 'message' => "Usuario inválido"], 400);
+        }
     }
 }

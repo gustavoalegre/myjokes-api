@@ -53,13 +53,21 @@ class JokeUserController extends Controller
         ]);
         $input = $request->all();
 
+        // Envía los datos a Stripe para crear el customer
+        $stripe = new \Stripe\StripeClient(config('stripe.sk'));
+        $customer = $stripe->customers->create([
+            'name' => $input['first_name'] . ' ' . $input['last_name'],
+            'email' => $input['email'],
+        ]);
+
         // Crea un nuevo usuario
         $joke_user = new JokeUser;
         $joke_user->first_name = $input['first_name'];
         $joke_user->last_name = $input['last_name'];
         $joke_user->email = $input['email'];
-        $joke_user->password = bcrypt($input['password']);
+        $joke_user->password = md5($input['password']);
         $joke_user->phone_number = $input['phone_number'];
+        $joke_user->stripe_id = $customer->id;
         $joke_user->save();
         return response()->json(['status' => 201, 'message' => 'created'], 201);
     }
